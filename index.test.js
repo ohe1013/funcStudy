@@ -22,8 +22,12 @@ const add_item_to_cart = (name, price) => {
 
   update_shipping_icons(total);
 };
+
+const is_free_shipping = (item_price, shopping_cart_total) =>
+  item_price + shopping_cart_total >= 20;
+
 //액션
-function update_shipping_icons() {
+function update_shipping_icons(total) {
   var buy_buttons = get_buy_buttons_dom();
   for (var i = 0; i < buy_buttons.length; i++) {
     var button = buy_buttons[i];
