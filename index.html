@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body></body>
+  <script>
+    const log = console.log;
+    const L = {};
+    function curry(f) {
+      return (a, ...bs) =>
+        bs.length
+          ? f(a, ...bs)
+          : (...bs) => {
+              return f(a, ...bs);
+            };
+    }
+
+    L.range = function* (stop) {
+      let i = -1;
+      while (++i < stop) yield i;
+    };
+    L.filter = curry(function* (f, iter) {
+      for (const a of iter) {
+        if (f(a)) yield a;
+      }
+    });
+    L.map = curry(function* (f, iter) {
+      for (const a of iter) {
+        yield f(a);
+      }
+    });
+    const take = curry(function (length, iter) {
+      let res = [];
+      for (const a of iter) {
+        res.push(a);
+        if (res.length === length) return res;
+      }
+      return res;
+    });
+    const add = (a, b) => a + b;
+    // const f = (list, length) =>
+    //   reduce(
+    //     add,
+
+    //     take(
+    //       length,
+    //       map(
+    //         (a) => a * a,
+    //         filter((item) => item % 2, list)
+    //       )
+    //     )
+    //   );
+    const f2 = (list, length) =>
+      go(
+        list,
+        L.filter((item) => item % 2),
+        L.map((a) => a * a),
+        take(length),
+        reduce(add)
+      );
+
+    const go = (...as) => reduce((a, f) => f(a), as);
+    const reduce = curry(function (f, acc, iter) {
+      if (arguments.length === 2) {
+        iter = acc[Symbol.iterator]();
+        acc = iter.next().value;
+      }
+      for (const a of iter) {
+        acc = f(acc, a);
+      }
+      return acc;
+    });
+
+    function main() {
+      const arr = [1, 2, 3, 4, 5];
+      // const newArr = new Array(10000000).fill(0).map((item, idx) => idx);
+      // log(f2(arr, 1));
+      // log(f2(arr, 2));
+      // console.time("st");
+      log(f2(L.range(Infinity), 1));
+      // console.timeEnd("st");
+      // console.time("st");
+      // log(f2(newArr, 10000000));
+      // console.timeEnd("st");
+      go(
+        10,
+        (a) => a + 1,
+        (a) => a + 10,
+        log
+      );
+    }
+    main();
+  </script>
+  <script>
+    console.clear();
+    const arr = [[1, 2], 3, 4, 5, [6, 7, 8], [9, 10]];
+
+    L.flat = function* (iter) {
+      for (const a of iter) {
+        if (a && a[Symbol.iterator]) yield* a;
+        else yield a;
+      }
+    };
+
+    go(
+      arr,
+      L.flat,
+      L.filter((a) => a % 2),
+      take(5),
+      reduce(add),
+      log
+    );
+  </script>
+
+  <script>
+    const users = [
+      {
+        name: "a",
+        age: 21,
+        family: [
+          { name: "a1", age: 53 },
+          { name: "a2", age: 23 },
+          { name: "a3", age: 3 },
+          { name: "a4", age: 13 },
+        ],
+      },
+      {
+        name: "b",
+        age: 21,
+        family: [
+          { name: "b1", age: 53 },
+          { name: "b1", age: 11 },
+          { name: "b1", age: 12 },
+          { name: "b1", age: 42 },
+        ],
+      },
+      {
+        name: "c",
+        age: 21,
+        family: [
+          { name: "c1", age: 13 },
+          { name: "c1", age: 3 },
+          { name: "c1", age: 5 },
+          { name: "c1", age: 53 },
+        ],
+      },
+      {
+        name: "d",
+        age: 21,
+        family: [
+          { name: "d1", age: 43 },
+          { name: "d1", age: 1 },
+          { name: "d1", age: 2 },
+          { name: "d1", age: 33 },
+        ],
+      },
+    ];
+    console.clear();
+    go(
+      users,
+      L.map((u) => u.family),
+      L.flat,
+      L.filter((u) => u.age < 20),
+      L.map((u) => u.age),
+      take(2),
+      reduce(add),
+      // (_) => [..._],
+      log
+    );
+  </script>
+</html>
