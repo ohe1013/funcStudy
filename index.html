@@ -41,6 +41,24 @@
       }
       return res;
     });
+    const takeWhile = curry(function (f, iter) {
+      iter = iter[Symbol.iterator]();
+      log(iter);
+      iter.return = null;
+      let res = [];
+      return (function recur() {
+        for (const a of iter) {
+          const b = go1(a, f);
+          if (!b) return res;
+          if (b instanceof Promise)
+            return b.then(async (b) =>
+              b ? (res.push(await a), recur()) : res
+            );
+          res.push(a);
+        }
+        return res;
+      })();
+    });
     const add = (a, b) => a + b;
     // const f = (list, length) =>
     //   reduce(
@@ -62,8 +80,9 @@
         take(length),
         reduce(add)
       );
+    const go1 = (a, f) => (a instanceof Promise ? a.then(f) : f(a));
 
-    const go = (...as) => reduce((a, f) => f(a), as);
+    const go = (...as) => reduce(go1, as);
     const reduce = curry(function (f, acc, iter) {
       if (arguments.length === 2) {
         iter = acc[Symbol.iterator]();
@@ -171,5 +190,92 @@
       // (_) => [..._],
       log
     );
+  </script>
+
+  <script>
+    const g = JSON.parse;
+    const f = ({ a }) => {
+      return a;
+    };
+
+    const fg = (x) =>
+      Promise.resolve(x)
+        .then((item) => g(item))
+        .then((item) => f(item));
+
+    fg('{"a":10}').then(log);
+  </script>
+  <script>
+    console.clear();
+
+    const delay = (time, a) =>
+      new Promise((res) => setTimeout(() => res(a), time));
+    //비동기 상황을 값으로 담는다!! 이게 제일 중요하다.
+    //특정 시점에 만약에 if(true) 일 때 비동기로 다룬다.
+
+    //promise를 일급함수로 다룰때 그 때 가치가 진짜 커진다.
+
+    async function af() {
+      var b = await go(
+        Promise.resolve(1),
+        (a) => a + 1,
+        (a) => delay(100, a + 10000)
+      );
+      log(b);
+    }
+    //async await 를 for 문에서 쓸 수 있지만 이건 명령형 코드로 작성할뿐
+    // af();
+  </script>
+  <script>
+    const Impt = {
+      payments: {
+        0: [
+          { iid: 11, oid: 1 },
+          { iid: 12, oid: 2 },
+          { iid: 13, oid: 3 },
+        ],
+        1: [
+          { iid: 14, oid: 4 },
+          { iid: 15, oid: 5 },
+          { iid: 15, oid: 5 },
+        ],
+        2: [
+          { iid: 16, oid: 6 },
+          { iid: 16, oid: 7 },
+          { iid: 16, oid: 8 },
+        ],
+        3: [],
+      },
+      getPayments: (page) => {
+        log(`http//..?page=${page}`);
+        return delay(100, Impt.payments[page]);
+      },
+      cancelPayment: (paymentId) => Promise.resolve(`${paymentId}:취소완료`),
+    };
+
+    const getOrders = (ids) => delay(100, [{ id: 1 }, { id: 3 }, { id: 7 }]);
+
+    async function job() {
+      const payments = await go(
+        L.range(Infinity),
+        L.map(Impt.getPayments),
+        takeWhile((ps) => ps.length),
+        L.flat,
+        (_) => [..._],
+        take(Infinity)
+      );
+
+      const orderIds = await go(
+        payments,
+        L.map((p) => p.oid),
+        take(Infinity),
+        getOrders,
+        L.map((o) => o.id),
+        take(Infinity)
+      );
+      log(payments, orderIds);
+    }
+
+    job();
   </script>
 </html>
